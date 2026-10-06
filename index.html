@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ИИ-агент кибербезопасника за 5 минут</title>
+<style>
+:root{--bg:#f3f5f7;--panel:#fff;--line:#d3dbe3;--text:#16212b;--mute:#586674;--accent:#1d6a96;--on:#fff;--bad:#b3261e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#10161c;--panel:#18212a;--line:#2b3947;--text:#e8edf2;--mute:#9aa9b8;--accent:#6fb7d9;--on:#10161c;--bad:#ef7a72}}
+:root[data-theme=dark]{--bg:#10161c;--panel:#18212a;--line:#2b3947;--text:#e8edf2;--mute:#9aa9b8;--accent:#6fb7d9;--on:#10161c;--bad:#ef7a72}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--text);font:18px/1.5 "Segoe UI",Roboto,Arial,sans-serif}
+main{max-width:720px;margin:0 auto;padding:18px 16px 48px}
+h1{margin:0;font-size:1.7rem;line-height:1.25}
+.sub{color:var(--mute);margin:6px 0 14px}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent)}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:14px}
+h2{margin:0 0 6px;font-size:1.25rem}
+label,.lbl{display:block;margin:12px 0 4px;color:var(--mute);font-size:.95rem}
+input,select,button{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:11px 12px;min-height:50px;width:100%}
+button{cursor:pointer;width:auto}
+button.main{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:600}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.ck{display:flex;gap:12px;align-items:center;margin:0;padding:8px 0;color:var(--text);font-size:1rem}
+.ck input{width:26px;height:26px;min-height:0;flex:none;accent-color:var(--accent)}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+pre{white-space:pre-wrap;word-break:break-word;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;font-size:.88rem;line-height:1.45;max-height:420px;overflow:auto}
+.note{color:var(--mute);font-size:.9rem}
+.gap{margin:8px 0;padding-left:10px;border-left:4px solid var(--accent)}
+.gap.Critical{border-color:var(--bad)}
+</style>
+</head>
+<body>
+<main>
+<h1>ИИ-агент кибербезопасника за 5 минут</h1>
+<p class="sub">Ответьте на вопросы по шести блокам. Внизу появится готовая инструкция для агента: вставьте её в любой ИИ-ассистент.</p>
+<div class="bar" aria-hidden="true"><i id="bar"></i></div>
+<p class="note" id="prog"></p>
+<div class="row" style="margin:0 0 4px"><button id="demo">Заполнить примером</button></div>
+<div id="form"></div>
+
+<section id="res">
+<h2>Готовый агент</h2>
+<div id="gaps"></div>
+<pre id="out"></pre>
+<div class="row"><button class="main" id="cp">Копировать инструкцию</button><button id="rs">Очистить</button></div>
+<p class="note">Данные хранятся только в этом браузере. Не вносите персональные данные и секреты: достаточно описания систем и процессов.</p>
+</section>
+</main>
+
+<script>
+var KEY="agent-sib-v1";
+var YN=["Да","Нет","Не знаю"];
+var B=[
+{t:"Паспорт",f:[
+ ["org","Организация","text"],["head","Руководитель СИБ (ФИО или должность)","text"],
+ ["sphere","Сфера","sel",["Государственный орган","Финансы","Телеком","Энергетика и транспорт","Промышленность","Другое"]],
+ ["soc","Центр мониторинга (SOC)","sel",["Собственный SOC","Внешний SOC 24/7","Нет SOC"]]]},
+{t:"Цифровой объект",f:[
+ ["obj","Название информационной системы","text"],["purpose","Назначение","text"],
+ ["host","Где размещена","sel",["Собственный ЦОД","Облако на территории РК","Облако за пределами РК"]],
+ ["pdn","Персональные данные","sel",["Не обрабатываются","Общедоступные","Ограниченного доступа"]],
+ ["inet","Доступна из интернета","sel",YN.slice(0,2)],["stack","Основные технологии","text"]]},
+{t:"Соответствие требованиям ИБ",f:[
+ ["norms","Применимые нормы","chk",["Закон РК «Об информатизации»","Закон РК «О персональных данных и их защите»","Единые требования в сфере ИКТ и ИБ","ISO/IEC 27001","NIST SP 800-53","CIS Controls","OWASP Top 10","MITRE ATT&CK"]],
+ ["att","Информационная система аттестована","sel",["Да","Нет","Не требуется"]]]},
+{t:"Доступы",f:[
+ ["mfa","MFA для привилегированных записей","sel",["Включена для всех","Частично","Нет"]],
+ ["pam","Система контроля привилегированного доступа (PAM)","sel",["Есть","Нет"]],
+ ["shared","Общие учётные записи","sel",["Нет","Есть","Не знаю"]],
+ ["revoke","Отзыв прав после увольнения","sel",["В течение часа","В течение дня","Дольше или вручную"]],
+ ["mode","Права самого агента","sel",["Только чтение и черновики","Предлагает действия, выполняет человек"]]]},
+{t:"КВОИКТ",f:[
+ ["kv","Объект отнесён к КВОИКТ","sel",["Да","Нет","Уточняется"]],
+ ["nkci","Интеграция с НКЦИ/CERT","sel",["Подключена","Не подключена"]],
+ ["pentest","Последний пентест","sel",["Менее 6 месяцев назад","Более 6 месяцев назад","Не проводился"]],
+ ["dr","Тест восстановления из копий","sel",["Менее 6 месяцев назад","Более 6 месяцев назад","Не проводился"]]]},
+{t:"Уязвимости",f:[
+ ["scan","Сканирование уязвимостей","sel",["Не реже раза в месяц","Реже","Не проводится"]],
+ ["sla","Срок устранения критичных","sel",["До 48 часов","До недели","Срок не установлен"]],
+ ["tools","Инструменты","chk",["SAST","DAST","Сканер инфраструктуры","EDR","SIEM"]],
+ ["crit","Открытых критичных уязвимостей","num"]]}
+];
+var S={};try{var r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)||{}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function $(i){return document.getElementById(i)}
+function el(t,x,c){var e=document.createElement(t);if(x!=null)e.textContent=x;if(c)e.className=c;return e}
+
+var ALL=[];
+function build(){var F=$("form");F.innerHTML="";ALL=[];
+ B.forEach(function(b,bi){var s=el("section");s.appendChild(el("h2",(bi+1)+". "+b.t));
+  b.f.forEach(function(f){var k=f[0],id="f_"+k;ALL.push(f);
+   if(f[2]==="chk"){s.appendChild(el("div",f[1],"lbl"));var cur=S[k]||[];
+    f[3].forEach(function(o,i){var l=el("label",null,"ck");var c=document.createElement("input");c.type="checkbox";c.checked=cur.indexOf(o)>-1;
+     c.onchange=function(){var a=(S[k]||[]).filter(function(x){return x!==o});if(c.checked)a.push(o);S[k]=a;upd()};
+     l.appendChild(c);l.appendChild(el("span",o));s.appendChild(l)});return}
+   var l=el("label",f[1]);l.htmlFor=id;s.appendChild(l);var i;
+   if(f[2]==="sel"){i=document.createElement("select");var o0=el("option","— выберите —");o0.value="";i.appendChild(o0);f[3].forEach(function(o){var op=el("option",o);op.value=o;i.appendChild(op)})}
+   else{i=document.createElement("input");i.type=f[2]==="num"?"number":"text";if(f[2]==="num")i.min=0}
+   i.id=id;i.value=S[k]||"";i.oninput=i.onchange=function(){S[k]=i.value;upd()};s.appendChild(i)});
+  F.appendChild(s)})}
+
+function filled(f){var v=S[f[0]];return f[2]==="chk"?(v&&v.length>0):(v!==undefined&&String(v).trim()!=="")}
+function gaps(){var g=[];function a(s,t,n){g.push({s:s,t:t,n:n})}
+ var v=function(k){return S[k]||""};
+ if(v("mfa")&&v("mfa")!=="Включена для всех")a("Critical","MFA включена не для всех привилегированных записей.","Блок 1.3 методики; NIST 800-53 IA-2");
+ if(v("shared")==="Есть")a("High","Используются общие учётные записи.","Блок 1.1 методики; ISO 27002");
+ if(v("shared")==="Не знаю")a("Medium","Нет данных об общих учётных записях: нужна инвентаризация.","Блок 1.1");
+ if(v("revoke")==="Дольше или вручную")a("Medium","Права отзываются медленнее 1 часа после увольнения.","Блок 5.3 методики");
+ if(v("host")==="Облако за пределами РК"&&v("pdn")==="Ограниченного доступа")a("Critical","Данные ограниченного доступа размещены за пределами РК, риск нарушения требования локализации.","Блок 2.1; ст. 12 Закона РК № 94-V (проверить редакцию)");
+ if(v("inet")==="Да"&&(v("tools")||[]).indexOf("DAST")<0&&v("tools"))a("Medium","Система доступна из интернета, но динамический анализ (DAST) не применяется.","OWASP Top 10; блок 5.1");
+ if(v("kv")==="Да"){
+  if(v("att")==="Нет")a("Critical","Объект КВОИКТ без аттестата.","Блок 6.1");
+  if(v("soc")==="Нет SOC")a("Critical","Для КВОИКТ нет SOC 24/7.","Блок 6.1");
+  if(v("nkci")==="Не подключена")a("High","Нет интеграции с НКЦИ/CERT.","Блок 6.1");
+  if(v("pentest")&&v("pentest")!=="Менее 6 месяцев назад")a("High","Пентест не проводился в последние 6 месяцев.","Блок 6.2");
+  if(v("dr")&&v("dr")!=="Менее 6 месяцев назад")a("High","Тест восстановления не проводился в последние 6 месяцев.","Блок 6.2")}
+ if(v("kv")==="Уточняется")a("Medium","Статус КВОИКТ не определён: проверьте по правилам отнесения.","Блок 6");
+ if(v("scan")&&v("scan")!=="Не реже раза в месяц")a("High","Сканирование уязвимостей реже раза в месяц.","Блок 4.1");
+ if(v("sla")&&v("sla")!=="До 48 часов")a("High","Критичные уязвимости устраняются дольше 48 часов.","Блок 4.1; CVSS");
+ if(parseInt(v("crit"),10)>0)a("High","Открытых критичных уязвимостей: "+v("crit")+".","Блок 4.1");
+ return g}
+
+function prompt(){var v=function(k,d){return S[k]||d||"не указано"},G=gaps(),L=[];
+ L.push("# РОЛЬ","Вы — ИИ-ассистент руководителя Службы информационной безопасности организации «"+v("org")+"» (сфера: "+v("sphere")+"). Ответственный: "+v("head")+". Центр мониторинга: "+v("soc")+".","",
+ "# ОБЪЕКТ","Информационная система: "+v("obj")+". Назначение: "+v("purpose")+". Размещение: "+v("host")+". Персональные данные: "+v("pdn")+". Доступ из интернета: "+v("inet")+". Технологии: "+v("stack")+".","",
+ "# НОРМАТИВНАЯ БАЗА",((S.norms&&S.norms.length)?S.norms.map(function(x){return"- "+x}).join("\n"):"- не выбрана"),"Аттестация ИС: "+v("att")+". Номера статей и приказов указывайте только если уверены, иначе просите сверить с актуальной редакцией.","",
+ "# ТЕКУЩЕЕ СОСТОЯНИЕ","- MFA для привилегированных: "+v("mfa")+"; PAM: "+v("pam")+"; общие учётные записи: "+v("shared")+"; отзыв прав: "+v("revoke")+".",
+ "- КВОИКТ: "+v("kv")+"; НКЦИ/CERT: "+v("nkci")+"; последний пентест: "+v("pentest")+"; тест восстановления: "+v("dr")+".",
+ "- Сканирование: "+v("scan")+"; срок устранения критичных: "+v("sla")+"; инструменты: "+((S.tools&&S.tools.length)?S.tools.join(", "):"не указаны")+"; открытых критичных: "+v("crit","0")+".","",
+ "# ИЗВЕСТНЫЕ ПРОБЕЛЫ (приоритет в работе)",G.length?G.map(function(x){return"- ["+x.s+"] "+x.t+" ("+x.n+")"}).join("\n"):"- по введённым данным не выявлены","",
+ "# ПРАВИЛА","- Только оборонительная безопасность. Не создавайте эксплойты и вредоносный код, не описывайте способы обхода защиты.","- Права агента: "+v("mode")+". Блокировки, отзыв прав и уведомления регуляторов выполняет человек после подтверждения.","- Не просите и не принимайте персональные данные, пароли и ключи. Работайте с обезличенными описаниями и выгрузками.","- Официально-деловой стиль, на русском языке. Если данных не хватает, скажите об этом и задайте один уточняющий вопрос.","",
+ "# ФОРМАТ ОТВЕТА","Для каждого вывода: 1) нарушение или риск со ссылкой на норму; 2) критичность (Critical, High, Medium, Low); 3) рекомендуемое решение и срок; 4) возможный ущерб (финансовый, репутационный, регуляторный, остановка процессов).","",
+ "# СРОКИ УСТРАНЕНИЯ","Critical (CVSS 9.0–10.0): 24–48 часов. High (7.0–8.9): 7 рабочих дней. Medium (4.0–6.9): 30 дней. Low: до 90 дней.");
+ return L.join("\n")}
+
+var T="";
+function upd(){save();var n=0;ALL.forEach(function(f){if(filled(f))n++});var p=Math.round(n/ALL.length*100);
+ $("bar").style.width=p+"%";$("prog").textContent="Заполнено: "+n+" из "+ALL.length+" ("+p+"%)";
+ var g=gaps(),G=$("gaps");G.innerHTML="";
+ G.appendChild(el("p",g.length?"Выявлено пробелов: "+g.length+". Они включены в инструкцию агента как приоритеты.":"Пробелов по введённым данным не выявлено.","note"));
+ g.forEach(function(x){var d=el("div",null,"gap "+x.s);d.appendChild(el("strong",x.s+": "));d.appendChild(document.createTextNode(x.t));G.appendChild(d)});
+ T=prompt();$("out").textContent=T}
+
+$("cp").onclick=function(){var b=$("cp");function ok(){b.textContent="Скопировано";setTimeout(function(){b.textContent="Копировать инструкцию"},1600)}
+ function fb(){var a=document.createElement("textarea");a.value=T;a.style.position="fixed";a.style.opacity="0";document.body.appendChild(a);a.select();try{document.execCommand("copy");ok()}catch(e){}document.body.removeChild(a)}
+ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(T).then(ok,fb);else fb()};
+$("rs").onclick=function(){if(!window.confirm("Очистить все ответы?"))return;S={};save();build();upd()};
+$("demo").onclick=function(){S={org:"Пример-Банк",head:"Руководитель СИБ",sphere:"Финансы",soc:"Внешний SOC 24/7",obj:"Платёжный портал",purpose:"Приём платежей клиентов",host:"Облако на территории РК",pdn:"Ограниченного доступа",inet:"Да",stack:"Java, PostgreSQL, Kubernetes",norms:["Закон РК «О персональных данных и их защите»","Единые требования в сфере ИКТ и ИБ","ISO/IEC 27001","OWASP Top 10"],att:"Нет",mfa:"Частично",pam:"Нет",shared:"Есть",revoke:"В течение дня",mode:"Только чтение и черновики",kv:"Да",nkci:"Не подключена",pentest:"Более 6 месяцев назад",dr:"Не проводился",scan:"Реже",sla:"До недели",tools:["SAST","SIEM"],crit:"3"};build();upd()};
+build();upd();
+</script>
+</body>
+</html>
